@@ -16,7 +16,12 @@ connectDB();
 
 // Middleware
 app.use(express.json()); // To parse JSON requests
-app.use(cors()); // Enable CORS for all routes
+app.use(cors({
+    origin: ['http://localhost:5173', 'http://localhost:5174'],
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization']
+}));
 
 // Routes
 app.use('/api/auth', authRoutes);

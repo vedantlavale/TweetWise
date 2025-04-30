@@ -1,1 +1,0 @@
-{"root":["./src/app.ts","./src/config/prisma.ts","./src/config/supabase.ts","./src/controllers/auth.controller.ts","./src/controllers/debate.controller.ts","./src/controllers/tweet.controller.ts","./src/middleware/auth.ts","./src/routes/auth.routes.ts","./src/routes/debate.routes.ts","./src/routes/tweet.routes.ts","./src/types/express.d.ts"],"version":"5.8.2"}

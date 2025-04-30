@@ -2,6 +2,7 @@
 import express from 'express';
 import connectDB from './config/db.js';
 import dotenv from 'dotenv';
+import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import debateRoutes from './routes/debateRoutes.js';
 import tweetRoutes from './routes/tweetRoutes.js';

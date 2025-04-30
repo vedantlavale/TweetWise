@@ -1,63 +1,77 @@
-// Mock API service - would be replaced with actual Gemini API calls later
+import { GoogleGenerativeAI } from '@google/generative-ai';
 
-// Simulated API delay
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_KEY);
+const model = genAI.getGenerativeModel({ 
+  model: 'gemini-2.0-flash', 
+});
 
-type TweetStyle = 'professional' | 'casual' | 'funny' | 'inspirational' | 'provocative';
+export type TweetStyle = 'professional' | 'casual' | 'funny' | 'inspirational' | 'provocative';
+export type DebateFormat = 'formal' | 'academic' | 'casual' | 'humorous';
 
-/**
- * Mock function to enhance a tweet with a specific style
- */
-export async function enhanceTweet(tweet: string, style: TweetStyle): Promise<string> {
-  // Simulate API delay
-  await delay(1500);
-  
-  // Mock responses for different styles
-  const responses: Record<TweetStyle, string> = {
-    professional: `I'm excited to share that our team has successfully implemented the new feature that will significantly improve user experience. Looking forward to your feedback! #Innovation #UserExperience`,
-    
-    casual: `Just finished working on that cool new feature we talked about! Can't wait for y'all to try it out and let me know what you think! 😊 #NewStuff`,
-    
-    funny: `Spent 5 hours debugging what turned out to be a missing semicolon. Coffee consumption: dangerous levels. Sanity: questionable. But hey, the feature works now! 😂 #DeveloperLife #SendHelp`,
-    
-    inspirational: `Every line of code represents a choice. Today, we chose to make our users' lives better. Small improvements compound into extraordinary results. What will you improve today? #GrowthMindset #Innovation`,
-    
-    provocative: `Hot take: Most "revolutionary" apps are just basic features with fancy marketing. Our new update actually delivers on its promises. Try it if you're tired of the hype. #RealTalk #NoFilter`
-  };
-  
-  return responses[style];
+interface TweetResponse {
+  enhancedText: string;
+  error?: string;
 }
 
-type DebateFormat = 'formal' | 'casual' | 'academic' | 'humorous';
-
-interface DebateResult {
+interface DebateResponse {
   pro: string;
   con: string;
+  error?: string;
 }
 
-/**
- * Mock function to generate debate arguments
- */
-export async function generateDebate(topic: string, format: DebateFormat): Promise<DebateResult> {
-  // Simulate API delay
-  await delay(2000);
-  
-  // Example debate on "Why cats are better than dogs" in different formats
-  const catsDogsTopic = "cats are better than dogs";
-  const isCatsTopic = topic.toLowerCase().includes("cats") && topic.toLowerCase().includes("dogs");
-  
-  if (isCatsTopic) {
-    return {
-      pro: `Cats are independent and low-maintenance pets that are perfect for busy lifestyles. They are clean animals that groom themselves, use litter boxes, and don't require walks. Cats are quiet, space-efficient, and typically live longer than dogs. Their purring has therapeutic benefits and can lower stress and blood pressure in humans. Financially, cats cost significantly less than dogs over their lifetime in terms of food, healthcare, and accessories.`,
-      
-      con: `Dogs offer unmatched loyalty and companionship, forming deep bonds with their owners. They provide security and protection for homes and families. Dogs are highly trainable and can perform various tasks from service work to search and rescue. Their need for walks encourages owners to exercise regularly. Dogs are social animals that help their owners meet new people and build community connections. Studies show dog owners generally have lower blood pressure and reduced risk of heart disease.`
+export async function enhanceTweet(text: string, style: TweetStyle): Promise<TweetResponse> {
+  const styleInstructions = {
+    professional: "Transform into polished business English, fix grammar. Just use human language",
+    casual: "Make this text normal, friendly (something casual) and use human language.",
+    funny: "Add humor, jokes, or witty observations(something funny) and use human language.",
+    inspirational: "Include motivational phrases and uplifting messages(something imspirational) and use human language.",
+    provocative: "Make thought-provoking with controversial angle(something that can be a little offensive and provocative for others) and use human language."
+  };
+
+  try {
+    const prompt = `Rephrase this tweet in ${style} style: "${text}"
+    - Keep under 280 chars
+    - ${styleInstructions[style]}
+    - Maintain core message
+    - Generate response in the language the user asked to generate it in(if not then the language in which user gave text)
+    
+    Enhanced version:`;
+    
+    const result = await model.generateContent(prompt);
+    const enhanced = result.response.text().replace(/^"(.*)"$/, '$1'); // Remove quotes
+    return { enhancedText: enhanced.trim() };
+  } catch (error) {
+    return { 
+      enhancedText: '', 
+      error: error instanceof Error ? error.message : 'Enhancement failed' 
     };
   }
-  
-  // Generic responses for other topics
-  return {
-    pro: `There are several compelling arguments supporting this position. First, extensive research has demonstrated significant benefits including improved outcomes, increased efficiency, and greater satisfaction among stakeholders. Historical precedents show similar approaches have succeeded in comparable contexts. From an ethical standpoint, this position aligns with widely accepted principles of fairness and maximizing collective well-being. The economic analysis also indicates long-term sustainability with minimal negative externalities.`,
-    
-    con: `Despite the apparent benefits, there are strong reasons to oppose this position. Critical analysis reveals several flaws in the underlying assumptions. Implementation would likely create unintended consequences that outweigh the potential benefits. There are significant concerns regarding accessibility, equity, and long-term sustainability. Alternative approaches would achieve similar goals with fewer drawbacks. Historical examples demonstrate the risks of similar strategies. Ethically, this position raises questions about autonomy and distributive justice that cannot be easily dismissed.`
+}
+
+export async function generateDebate(topic: string, format: DebateFormat): Promise<DebateResponse> {
+  const formatTones = {
+    formal: "you can use academic sources and formal logic. Directly present the argument without any other unnecessary text. Also only give argument supporting it not aginst the statement.",
+    academic: "you can use statistics and research citations. Directly present the argument without any other unnecessary text. Also only give argument supporting it not aginst the statement.",
+    casual: "you can use everyday examples and simple language. Directly present the argument without any other unnecessary text. Also only give argument supporting it not aginst the statement.", 
+    humorous: "you can use funny comparisons and jokes regarding the topic. Directly present the argument without any other unnecessary text. Also only give argument supporting it not aginst the statement."
   };
+
+  try {
+    const prompt = `Generate STRONG arguments SUPPORTING "${topic}" using ${formatTones[format]}.
+      Present as clear paragraph text in simple human language.`;
+    
+    const result = await model.generateContent(prompt);
+    const proArguments = result.response.text().trim();
+    
+    return {
+      pro: proArguments,
+      con: ''
+    };
+  } catch (error) {
+    return { 
+      pro: '', 
+      con: '', 
+      error: error instanceof Error ? error.message : 'Debate generation failed' 
+    };
+  }
 }

@@ -7,24 +7,28 @@ import { AppRoute } from '@/components/Routes';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { generateDebate } from '@/services/apiService';
+import { generateDebate } from '../services/apiService';
 
-interface DebateGeneratorProps {
-  onNavigate: (route: AppRoute) => void;
-}
+type DebateFormat = 'formal' | 'academic' | 'casual' | 'humorous';
+
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
+interface DebateGeneratorProps {
+  onNavigate: (route: AppRoute) => void;
+}
+
 export function DebateGenerator({ onNavigate }: DebateGeneratorProps) {
   const { toast } = useToast();
   const [input, setInput] = useState('');
+  const [selectedFormat, setSelectedFormat] = useState<DebateFormat>('formal');
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Hello! I can help you generate balanced arguments for any debate topic. Just send me a topic you\'d like to explore, and I\'ll provide arguments for both sides.'
+      content: 'Hello! I can help you generate balanced arguments for any debate topic. Just send me a topic you\'d like to explore, and I\'ll provide argument supporting your point.'
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,22 +47,19 @@ export function DebateGenerator({ onNavigate }: DebateGeneratorProps) {
     setIsLoading(true);
     
     try {
-      const result = await generateDebate(userMessage, 'formal');
+      const result = await generateDebate(userMessage, selectedFormat);
+      
       setMessages(prev => [
         ...prev,
         { 
           role: 'assistant', 
-          content: '👍 Arguments in favor:\n\n' + result.pro
-        },
-        {
-          role: 'assistant',
-          content: '👎 Arguments against:\n\n' + result.con
+          content: `\n${result.pro}\n\n`
         }
       ]);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to generate debate. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to generate debate",
         variant: "destructive",
       });
     } finally {
@@ -73,7 +74,7 @@ export function DebateGenerator({ onNavigate }: DebateGeneratorProps) {
         <div className="container py-4">
           <h1 className="text-3xl font-bold text-center">Debate Generator</h1>
           <p className="text-muted-foreground text-center mt-2">
-            Chat with our AI to explore different perspectives on any debate topic.
+            Explore different perspectives on any debate topic
           </p>
         </div>
 
@@ -97,7 +98,9 @@ export function DebateGenerator({ onNavigate }: DebateGeneratorProps) {
                               : 'bg-primary text-primary-foreground'
                           } whitespace-pre-line`}
                         >
-                          {message.content}
+                          {message.content.split('\n').map((line, i) => (
+                            <p key={i}>{line}</p>
+                          ))}
                         </div>
                       </div>
                     ))}
@@ -117,14 +120,29 @@ export function DebateGenerator({ onNavigate }: DebateGeneratorProps) {
 
                 <div className="p-4 border-t bg-background">
                   <form onSubmit={handleSubmit} className="flex gap-2">
+                    <select
+                      value={selectedFormat}
+                      onChange={(e) => setSelectedFormat(e.target.value as DebateFormat)}
+                      className="bg-background border rounded-md px-3 py-2 text-sm"
+                      disabled={isLoading}
+                    >
+                      <option value="formal">Formal</option>
+                      <option value="academic">Academic</option>
+                      <option value="casual">Casual</option>
+                      <option value="humorous">Humorous</option>
+                    </select>
                     <input
                       type="text"
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       placeholder="Type your debate topic here..."
                       className="flex-1 bg-background rounded-md border border-input px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                      disabled={isLoading}
                     />
-                    <Button type="submit" disabled={isLoading || !input.trim()}>
+                    <Button 
+                      type="submit" 
+                      disabled={isLoading || !input.trim()}
+                    >
                       <Send className="h-4 w-4" />
                       <span className="sr-only">Send message</span>
                     </Button>
@@ -139,10 +157,10 @@ export function DebateGenerator({ onNavigate }: DebateGeneratorProps) {
                     Debate Formats
                   </h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>• Formal - Structured arguments</li>
-                    <li>• Academic - Research-based</li>
-                    <li>• Casual - Conversational</li>
-                    <li>• Humorous - Light-hearted</li>
+                    <li><span className="font-medium">Formal:</span> Structured arguments</li>
+                    <li><span className="font-medium">Academic:</span> Research-based</li>
+                    <li><span className="font-medium">Casual:</span> Conversational</li>
+                    <li><span className="font-medium">Humorous:</span> Light-hearted</li>
                   </ul>
                 </Card>
 

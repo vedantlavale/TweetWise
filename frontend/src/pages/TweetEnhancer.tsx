@@ -9,22 +9,25 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
 import { enhanceTweet } from '@/services/apiService';
 
-interface TweetEnhancerProps {
-  onNavigate: (route: AppRoute) => void;
-}
+type TweetStyle = 'professional' | 'casual' | 'funny' | 'inspirational' | 'provocative';
 
 interface Message {
   role: 'user' | 'assistant';
   content: string;
 }
 
+interface TweetEnhancerProps {
+  onNavigate: (route: AppRoute) => void;
+}
+
 export function TweetEnhancer({ onNavigate }: TweetEnhancerProps) {
   const { toast } = useToast();
   const [input, setInput] = useState('');
+  const [selectedStyle, setSelectedStyle] = useState<TweetStyle>('professional');
   const [messages, setMessages] = useState<Message[]>([
     {
       role: 'assistant',
-      content: 'Hi! I can help you enhance your tweets. Just send me a tweet and I\'ll help make it more engaging. You can also specify a style like "professional", "casual", "funny", "inspirational", or "provocative".'
+      content: 'Hi! I can help enhance your tweets. Send me a tweet and choose a style like professional, casual, or funny!'
     }
   ]);
   const [isLoading, setIsLoading] = useState(false);
@@ -43,13 +46,18 @@ export function TweetEnhancer({ onNavigate }: TweetEnhancerProps) {
     setIsLoading(true);
     
     try {
-      // For now, using a mock service
-      const result = await enhanceTweet(userMessage, 'professional');
-      setMessages(prev => [...prev, { role: 'assistant', content: result }]);
+      const { enhancedText, error } = await enhanceTweet(userMessage, selectedStyle);
+      
+      if (error) throw new Error(error);
+      
+      setMessages(prev => [...prev, { 
+        role: 'assistant', 
+        content: enhancedText 
+      }]);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to enhance tweet. Please try again.",
+        description: error instanceof Error ? error.message : "Failed to enhance tweet",
         variant: "destructive",
       });
     } finally {
@@ -60,17 +68,19 @@ export function TweetEnhancer({ onNavigate }: TweetEnhancerProps) {
   return (
     <div className="flex flex-col min-h-screen">
       <Header onNavigate={onNavigate} title="Tweet Enhancer" />
+      
       <main className="flex-1 flex flex-col">
         <div className="container py-4">
           <h1 className="text-3xl font-bold text-center">Tweet Enhancer</h1>
           <p className="text-muted-foreground text-center mt-2">
-            Chat with our AI to enhance your tweets and make them more engaging.
+            Transform your tweets with AI magic
           </p>
         </div>
 
         <div className="flex-1 bg-muted/30">
           <div className="container h-full py-4">
             <div className="grid grid-cols-1 md:grid-cols-[1fr_300px] gap-4 h-full max-w-6xl mx-auto">
+              {/* Chat Area */}
               <Card className="h-[calc(100vh-16rem)] flex flex-col">
                 <ScrollArea className="flex-1 p-4">
                   <div className="space-y-4">
@@ -108,6 +118,17 @@ export function TweetEnhancer({ onNavigate }: TweetEnhancerProps) {
 
                 <div className="p-4 border-t bg-background">
                   <form onSubmit={handleSubmit} className="flex gap-2">
+                    <select
+                      value={selectedStyle}
+                      onChange={(e) => setSelectedStyle(e.target.value as TweetStyle)}
+                      className="bg-background border rounded-md px-3 py-2 text-sm"
+                    >
+                      <option value="professional">Professional</option>
+                      <option value="casual">Casual</option>
+                      <option value="funny">Funny</option>
+                      <option value="inspirational">Inspirational</option>
+                      <option value="provocative">Provocative</option>
+                    </select>
                     <input
                       type="text"
                       value={input}
@@ -117,37 +138,38 @@ export function TweetEnhancer({ onNavigate }: TweetEnhancerProps) {
                     />
                     <Button type="submit" disabled={isLoading || !input.trim()}>
                       <Send className="h-4 w-4" />
-                      <span className="sr-only">Send message</span>
+                      <span className="sr-only">Send</span>
                     </Button>
                   </form>
                 </div>
               </Card>
 
+              {/* Sidebar */}
               <div className="hidden md:flex flex-col gap-4">
                 <Card className="p-4">
                   <h3 className="font-semibold flex items-center gap-2 mb-3">
                     <Sparkles className="h-4 w-4" />
-                    Available Styles
+                    Style Guide
                   </h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>• Professional - For business tweets</li>
-                    <li>• Casual - Friendly and relaxed</li>
-                    <li>• Funny - Add humor and wit</li>
-                    <li>• Inspirational - Motivate others</li>
-                    <li>• Provocative - Start discussions</li>
+                    <li><span className="font-medium">Professional:</span> Business-appropriate</li>
+                    <li><span className="font-medium">Casual:</span> Friendly tone</li>
+                    <li><span className="font-medium">Funny:</span> Adds humor</li>
+                    <li><span className="font-medium">Inspirational:</span> Motivational</li>
+                    <li><span className="font-medium">Provocative:</span> Thought-provoking</li>
                   </ul>
                 </Card>
 
                 <Card className="p-4">
                   <h3 className="font-semibold flex items-center gap-2 mb-3">
                     <History className="h-4 w-4" />
-                    Tips
+                    Best Practices
                   </h3>
                   <ul className="space-y-2 text-sm text-muted-foreground">
-                    <li>• Keep tweets concise</li>
-                    <li>• Use relevant hashtags</li>
-                    <li>• Include a call to action</li>
-                    <li>• Engage with your audience</li>
+                    <li>• Keep tweets under 280 characters</li>
+                    <li>• Use 1-2 relevant hashtags</li>
+                    <li>• Include emojis for casual styles</li>
+                    <li>• Ask questions to engage readers</li>
                   </ul>
                 </Card>
               </div>
@@ -155,6 +177,7 @@ export function TweetEnhancer({ onNavigate }: TweetEnhancerProps) {
           </div>
         </div>
       </main>
+      
       <Footer />
     </div>
   );

@@ -16,6 +16,7 @@ connectDB();
 
 // Middleware
 app.use(express.json()); // To parse JSON requests
+app.use(cors()); // Enable CORS for all routes
 
 // Routes
 app.use('/api/auth', authRoutes);

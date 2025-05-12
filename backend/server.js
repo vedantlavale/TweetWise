@@ -6,6 +6,7 @@ import cors from 'cors';
 import authRoutes from './routes/authRoutes.js';
 import debateRoutes from './routes/debateRoutes.js';
 import tweetRoutes from './routes/tweetRoutes.js';
+import chatRoutes from './routes/chatRoutes.js';
 
 dotenv.config();
 
@@ -27,6 +28,7 @@ app.use(cors({
 app.use('/api/auth', authRoutes);
 app.use('/api/debate', debateRoutes);
 app.use('/api/tweet', tweetRoutes);
+app.use('/api/chat', chatRoutes);
 
 // Start the server
 const PORT = process.env.PORT || 5000;

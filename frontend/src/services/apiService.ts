@@ -1,9 +1,13 @@
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import axios from 'axios';
+import { authService } from './authService';
 
 const genAI = new GoogleGenerativeAI(import.meta.env.VITE_GEMINI_KEY);
 const model = genAI.getGenerativeModel({ 
   model: 'gemini-2.0-flash', 
 });
+
+const API_URL = 'http://localhost:5000/api';
 
 export type TweetStyle = 'professional' | 'casual' | 'funny' | 'inspirational' | 'provocative';
 export type DebateFormat = 'formal' | 'academic' | 'casual' | 'humorous';
@@ -39,7 +43,14 @@ export async function enhanceTweet(text: string, style: TweetStyle): Promise<Twe
     
     const result = await model.generateContent(prompt);
     const enhanced = result.response.text().replace(/^"(.*)"$/, '$1'); // Remove quotes
-    return { enhancedText: enhanced.trim() };
+    const enhancedText = enhanced.trim();
+
+    // Save the generated tweet
+    if (enhancedText) {
+      await saveTweet(text, enhancedText);
+    }
+
+    return { enhancedText };
   } catch (error) {
     return { 
       enhancedText: '', 
@@ -63,6 +74,11 @@ export async function generateDebate(topic: string, format: DebateFormat): Promi
     const result = await model.generateContent(prompt);
     const proArguments = result.response.text().trim();
     
+    // Save the generated debate
+    if (proArguments) {
+      await saveDebate(topic, format, proArguments);
+    }
+
     return {
       pro: proArguments,
       con: ''
@@ -73,5 +89,61 @@ export async function generateDebate(topic: string, format: DebateFormat): Promi
       con: '', 
       error: error instanceof Error ? error.message : 'Debate generation failed' 
     };
+  }
+}
+
+// Save generated tweet to backend
+async function saveTweet(originalPrompt: string, enhancedTweet: string) {
+  try {
+    await axios.post(
+      `${API_URL}/tweet`,
+      { originalPrompt, enhancedTweet },
+      {
+        headers: { Authorization: `Bearer ${authService.getToken()}` }
+      }
+    );
+  } catch (error) {
+    console.error('Error saving tweet:', error);
+  }
+}
+
+// Save generated debate to backend
+async function saveDebate(topic: string, stance: string, counterArgument: string) {
+  try {
+    await axios.post(
+      `${API_URL}/debate`,
+      { topic, stance, counterArgument },
+      {
+        headers: { Authorization: `Bearer ${authService.getToken()}` }
+      }
+    );
+  } catch (error) {
+    console.error('Error saving debate:', error);
+  }
+}
+
+// Get user's tweet history
+export async function getUserTweets() {
+  try {
+    const response = await axios.get(`${API_URL}/tweet`, {
+      headers: { Authorization: `Bearer ${authService.getToken()}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching tweets:', error);
+    return [];
+  }
+}
+
+// Get user's debate history
+export async function getUserDebates() {
+  try {
+    const response = await axios.get(`${API_URL}/debate`, {
+      headers: { Authorization: `Bearer ${authService.getToken()}` }
+    });
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching debates:', error);
+    return [];
   }
 }

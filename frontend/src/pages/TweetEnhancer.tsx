@@ -7,7 +7,8 @@ import { AppRoute } from '@/components/Routes';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { enhanceTweet } from '@/services/apiService';
+import { enhanceTweet, getUserTweets } from '@/services/apiService';
+import { useAuth } from '@/lib/auth';
 
 type TweetStyle = 'professional' | 'casual' | 'funny' | 'inspirational' | 'provocative';
 
@@ -22,6 +23,7 @@ interface TweetEnhancerProps {
 
 export function TweetEnhancer({ onNavigate }: TweetEnhancerProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [input, setInput] = useState('');
   const [selectedStyle, setSelectedStyle] = useState<TweetStyle>('professional');
   const [messages, setMessages] = useState<Message[]>([
@@ -36,6 +38,14 @@ export function TweetEnhancer({ onNavigate }: TweetEnhancerProps) {
     e.preventDefault();
     
     if (!input.trim()) return;
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to save your tweet history",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const userMessage = input.trim();
     setInput('');

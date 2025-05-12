@@ -7,10 +7,10 @@ import { AppRoute } from '@/components/Routes';
 import { Button } from '@/components/ui/button';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Card } from '@/components/ui/card';
-import { generateDebate } from '../services/apiService';
+import { generateDebate, getUserDebates } from '../services/apiService';
+import { useAuth } from '@/lib/auth';
 
 type DebateFormat = 'formal' | 'academic' | 'casual' | 'humorous';
-
 
 interface Message {
   role: 'user' | 'assistant';
@@ -23,6 +23,7 @@ interface DebateGeneratorProps {
 
 export function DebateGenerator({ onNavigate }: DebateGeneratorProps) {
   const { toast } = useToast();
+  const { user } = useAuth();
   const [input, setInput] = useState('');
   const [selectedFormat, setSelectedFormat] = useState<DebateFormat>('formal');
   const [messages, setMessages] = useState<Message[]>([
@@ -37,6 +38,14 @@ export function DebateGenerator({ onNavigate }: DebateGeneratorProps) {
     e.preventDefault();
     
     if (!input.trim()) return;
+    if (!user) {
+      toast({
+        title: "Authentication Required",
+        description: "Please sign in to save your debate history",
+        variant: "destructive",
+      });
+      return;
+    }
     
     const userMessage = input.trim();
     setInput('');

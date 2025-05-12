@@ -3,7 +3,6 @@ import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import * as z from 'zod';
 import { Loader2 } from 'lucide-react';
-import { v4 as uuidv4 } from 'uuid';
 import {
   Dialog,
   DialogContent,
@@ -17,11 +16,12 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/lib/auth';
-import API from '@/lib/api'
+import { authService } from '@/services/authService';
 
 const authSchema = z.object({
   email: z.string().email('Invalid email address'),
   password: z.string().min(6, 'Password must be at least 6 characters'),
+  name: z.string().optional(),
 });
 
 type AuthFormData = z.infer<typeof authSchema>;
@@ -49,16 +49,14 @@ export function AuthDialog({ mode, trigger }: AuthDialogProps) {
   const onSubmit = async (data: AuthFormData) => {
     setIsLoading(true);
     try {
-      // Simulate API call delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
+      let response;
+      if (mode === 'sign-up') {
+        response = await authService.signup(data);
+      } else {
+        response = await authService.login(data);
+      }
       
-      // Create a new user object
-      const user = {
-        id: uuidv4(),
-        email: data.email,
-      };
-      
-      setUser(user);
+      setUser({ id: response.userId, email: data.email });
       setIsOpen(false);
       reset();
       
@@ -92,6 +90,20 @@ export function AuthDialog({ mode, trigger }: AuthDialogProps) {
           </DialogDescription>
         </DialogHeader>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+          {mode === 'sign-up' && (
+            <div className="space-y-2">
+              <Label htmlFor="name">Name</Label>
+              <Input
+                id="name"
+                type="text"
+                placeholder="Enter your name"
+                {...register('name')}
+              />
+              {errors.name && (
+                <p className="text-sm text-destructive">{errors.name.message}</p>
+              )}
+            </div>
+          )}
           <div className="space-y-2">
             <Label htmlFor="email">Email</Label>
             <Input
